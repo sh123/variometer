@@ -6,12 +6,12 @@ use <dotSCAD/src/shape_circle.scad>
 //$fs = 1.0;
 
 // number of fragments
-$fn = 100;
+$fn = 30;
 
 /* [Main Parameters] */
 
 // object to render
-render_object_ = "rotor";    // ["rotor", "stator_upper", "stator_lower"]
+render_object_ = "rotor";    // ["rotor", "stator_upper", "stator_lower", "demo"]
 
 // winding wire diameter
 winding_wire_diameter_mm_ = 0.7;
@@ -72,6 +72,7 @@ stator_inductance_h_ = inductance(material_permeability_, stator_winding_wire_tu
 maximum_inductance_h_ = rotor_inductance_h_ + stator_inductance_h_;
 
 // print calculated parameters
+echo("object to render", render_object_);
 echo("rotor turns: ", rotor_winding_wire_turns_);
 echo("stator turns: ", stator_winding_wire_turns_);
 echo("rotor diameter: ", rotor_diameter_mm_, "mm");
@@ -93,10 +94,21 @@ if (abs(inductance_diff_uh_) > 2.0) {
 echo("shaft diameter: ", shaft_diameter_mm_, "mm");
 echo("shaft gap turns: ", shaft_gap_turns_);
 
-if (render_object_ == "rotor")
+if (render_object_ == "rotor") {
     render_rotor();
-else
-    render_stator();
+} else if (render_object_ == "demo") {
+    union() {
+        render_rotor();
+        translate([0, 0, 20])
+            render_stator("stator_upper");
+        translate([0, 0, -20])
+            render_stator("stator_lower");
+    }
+} else if (render_object_ == "stator_upper" || render_object == "stator_lower") {
+    render_stator(render_object_);
+} else {
+    assert(false, "Unknown object to render");
+}
 
 // need to have free space in between
 assert(stator_rotor_distance_mm_ > (winding_wire_diameter_mm_ / 1.5), "Stator-rotor distance is too small");
@@ -192,7 +204,7 @@ module render_rotor()
 }
 
 // render upper or lower part of the stator
-module render_stator() 
+module render_stator(render_object) 
 {
     // build circles
     points_circles = shape_circle(d2r(winding_wire_diameter_mm_));
@@ -242,7 +254,7 @@ module render_stator()
         );
         
         // cut upper hat
-        if (render_object_ == "stator_lower")
+        if (render_object == "stator_lower")
             translate([-stator_diameter_mm_ / 2.0, -stator_diameter_mm_ / 2.0, 0])
                 cube([stator_diameter_mm_, stator_diameter_mm_, stator_diameter_mm_ / 2.0]);
         else
@@ -250,7 +262,7 @@ module render_stator()
                 cube([stator_diameter_mm_, stator_diameter_mm_, stator_cap_len_mm]);
         
         // cut lower hat
-        if (render_object_ == "stator_upper")
+        if (render_object == "stator_upper")
             translate([-stator_diameter_mm_ / 2.0, -stator_diameter_mm_ / 2.0, -stator_diameter_mm_ / 2.0])
                 cube([stator_diameter_mm_, stator_diameter_mm_, stator_diameter_mm_ / 2.0]);
         else
