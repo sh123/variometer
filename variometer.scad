@@ -52,7 +52,7 @@ shaft_diameter_mm_ = 5.0;
 shaft_use_hole_ = false;  // [true, false]
 
 // shaft length from the rotor surface
-shaft_length_mm_ = 5.0;
+shaft_length_mm_ = 10.0;
 
 // how many turns to skip for shaft system
 shaft_gap_turns_ = ceil(shaft_diameter_mm_ / (winding_wire_diameter_mm_ + winding_wire_distance_mm_));
