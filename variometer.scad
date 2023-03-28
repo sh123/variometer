@@ -11,7 +11,7 @@ $fn = 30;
 /* [Main Parameters] */
 
 // object to render
-render_object_ = "rotor";    // ["rotor", "stator_upper", "stator_lower", "demo"]
+render_object_ = "rotor";    // ["rotor", "stator_upper", "stator_lower", "knob", "demo"]
 
 // winding wire diameter
 winding_wire_diameter_mm_ = 0.7;
@@ -31,6 +31,15 @@ stator_rotor_distance_mm_ = 2.0;
 // rotor/stator shell width
 stator_rotor_shell_width_mm_ = 1.0;
 
+// stator halfs connector width
+stator_halfs_connector_width_mm_ = 2.0;
+
+// stator halfs connector diameter
+stator_halfs_connector_diameter_mm_ = 3.0;
+
+// stator halfs connector hole diameter
+stator_halfs_connector_hole_diameter_mm_ = 0.5;
+
 // percentage of wiring over the sphere
 wiring_percentage_ = 50;
 assert((wiring_percentage_ <= 100.0) && (wiring_percentage_ >= 10.0), "Wiring percentage should befrom 10 to 100");
@@ -48,11 +57,29 @@ diameter_to_inductance_coeff_ = 0.6;
 // shaft cylinder or shaft hole diameter
 shaft_diameter_mm_ = 5.0;
 
-// generate shaft hole instead of shaft cylinders
+// generate shaft hole instead of shaft cylinders if using external shaft
 shaft_use_hole_ = false;  // [true, false]
 
 // shaft length from the rotor surface
-shaft_length_mm_ = 10.0;
+shaft_length_mm_ = 8.0;
+
+// shaft stopper ring width
+shaft_stopper_ring_width_mm_ = 1.0;
+
+// shaft stopper ring diameter
+shaft_stopper_ring_diameter_mm_ = 7.0;
+
+// generate shaft rotation 0-180 degree limit stopper
+shaft_use_stopper_ = true; // [true, false]
+
+// width of the shaft rotation limit stopper
+shaft_stopper_width_mm_ = 5.0;
+
+// height of the shaft rotation limit stopper
+shaft_stopper_height_mm_ = 1.0;
+
+// tuning knob width
+knob_width_mm_ = 1.0;
 
 // how many turns to skip for shaft system
 shaft_gap_turns_ = ceil(shaft_diameter_mm_ / (winding_wire_diameter_mm_ + winding_wire_distance_mm_));
@@ -103,9 +130,15 @@ if (render_object_ == "rotor") {
             render_stator("stator_upper");
         translate([0, 0, -20])
             render_stator("stator_lower");
+        translate([10.0 + rotor_diameter_mm_ / 2.0 + stator_rotor_distance_mm_ + stator_rotor_shell_width_mm_ + 1.0, 0, 0])
+            rotate([90, 0, 0])
+                rotate([0, 90, 0])
+                    render_knob();
     }
-} else if (render_object_ == "stator_upper" || render_object == "stator_lower") {
+} else if (render_object_ == "stator_upper" || render_object_ == "stator_lower") {
     render_stator(render_object_);
+} else if (render_object_ == "knob") {
+    render_knob();
 } else {
     assert(false, "Unknown object to render");
 }
@@ -133,31 +166,52 @@ module render_rotor()
 {
     // build circles
     points_circles = shape_circle(d2r(winding_wire_diameter_mm_));
-    
+
     // additional virtual turns based on wiring percentage
     add_turns = rotor_winding_wire_turns_ * (100 - wiring_percentage_) / wiring_percentage_;
     echo("rotor adding virtual turns", add_turns);
     rotor_cap_len_mm = 0.66 * add_turns * (winding_wire_diameter_mm_ + winding_wire_distance_mm_) / PI;
     echo("rotor cap len", rotor_cap_len_mm, "mm");
-    
+
     difference() {
-        
+
         // draw sphere with shafts
         union() {
             sphere(d = rotor_diameter_mm_);
+            if (shaft_use_stopper_) {
+                mirror([0, 1, 0])
+                    translate([-shaft_stopper_width_mm_ / 2.0, 0.0, -shaft_stopper_height_mm_ / 2.0])
+                        cube([shaft_stopper_width_mm_, rotor_diameter_mm_ / 2.0 + 2.0 * stator_rotor_distance_mm_ / 3.0, shaft_stopper_height_mm_]);
+                translate([-shaft_stopper_width_mm_ / 2.0, 0.0, -shaft_stopper_height_mm_ / 2.0])
+                    cube([shaft_stopper_width_mm_, rotor_diameter_mm_ / 2.0 + 2.0 * stator_rotor_distance_mm_ / 3.0, shaft_stopper_height_mm_]);
+            }
             if (!shaft_use_hole_) {
+                // right shaft
                 rotate([0, 90, 0])
                     cylinder(h = shaft_length_mm_ + rotor_diameter_mm_ / 2.0, d = shaft_diameter_mm_);
+                // right holding ring
+                translate([stator_rotor_distance_mm_ + rotor_diameter_mm_ / 2.0, 0, 0])
+                    rotate([0, -90, 0])
+                        cylinder(h = shaft_stopper_ring_width_mm_, d = shaft_stopper_ring_diameter_mm_);
+                // left shaft
                 rotate([0, -90, 0])
                     cylinder(h = shaft_length_mm_ + rotor_diameter_mm_ / 2.0, d = shaft_diameter_mm_);
+                // left holding ring
+                translate([-(stator_rotor_distance_mm_ + rotor_diameter_mm_ / 2.0), 0, 0])
+                    rotate([0, 90, 0])
+                        cylinder(h = shaft_stopper_ring_width_mm_, d = shaft_stopper_ring_diameter_mm_);
             }
-        }
-        
+        } // union
+
         if (shaft_use_hole_) {
             rotate([0, 90, 0])
                 cylinder(h = shaft_length_mm_ + rotor_diameter_mm_ / 2.0, d = shaft_diameter_mm_);
             rotate([0, -90, 0])
                 cylinder(h = shaft_length_mm_ + rotor_diameter_mm_ / 2.0, d = shaft_diameter_mm_);
+        } else {
+            // right knob slot
+            translate([stator_rotor_distance_mm_ + rotor_diameter_mm_ / 2.0 + stator_rotor_shell_width_mm_ + 1.0, -shaft_diameter_mm_ / 2.0, shaft_diameter_mm_ / 3.0])
+                cube([shaft_length_mm_ - stator_rotor_distance_mm_ - stator_rotor_shell_width_mm_ - 1.0, shaft_diameter_mm_, shaft_diameter_mm_]);
         }
         // create holes inside the shaft for wire
         rotate([0, 90, 0])
@@ -214,60 +268,113 @@ module render_stator(render_object)
     echo("stator adding virtual turns", add_turns);
     stator_cap_len_mm = 0.66 * add_turns * (winding_wire_diameter_mm_ + winding_wire_distance_mm_) / PI;
     echo("stator cap len", stator_cap_len_mm, "mm");
-    
+
     difference() {
-        
-        // main sphere
-        sphere(d = stator_diameter_mm_);
-        
-        // holes for shaft
-        rotate([0, 90, 0])
-            cylinder(h = shaft_length_mm_ + rotor_diameter_mm_ / 2.0, d = shaft_diameter_mm_);
-        rotate([0, -90, 0])
-            cylinder(h = shaft_length_mm_ + rotor_diameter_mm_ / 2.0, d = shaft_diameter_mm_);
-        
-        // remove inner sphere to build shell
-        sphere(d = stator_diameter_mm_ - 2 * stator_rotor_shell_width_mm_);
-        
-        // extrude lower spiral
-        sphere_spiral_extrude(
-            shape_pts = points_circles,
-            radius = d2r(stator_diameter_mm_),
-            za_step = 10.0,
-            z_circles = 4 * (stator_winding_wire_turns_ + add_turns),
-            begin_angle = 360 * ((add_turns - shaft_gap_turns_)/ 2.0),
-            end_angle = 360 * ((stator_winding_wire_turns_ + add_turns + shaft_gap_turns_) / 2.0),
-            vt_dir = "SPI_UP",
-            scale = 1.0
-        );
-        
-        // extrude upper spiral
-        sphere_spiral_extrude(
-            shape_pts = points_circles,
-            radius = d2r(stator_diameter_mm_),
-            za_step = 10.0,
-            z_circles = 4 * (stator_winding_wire_turns_ + add_turns),
-            begin_angle = 360 * ((stator_winding_wire_turns_ + add_turns + shaft_gap_turns_) / 2.0),
-            end_angle = 360 * ((add_turns - shaft_gap_turns_) / 2.0),
-            vt_dir = "SPI_UP",
-            scale = 1.0
-        );
+       
+        union() {
+            
+            difference() {
+                union() {
+                    // main sphere
+                    sphere(d = stator_diameter_mm_);
+                    // halfs screw tightenging
+                    for (deg = [45:45:360]) {
+                        rotate([0, 0, deg]) {
+                            difference() {
+                                translate([stator_diameter_mm_ / 2.0, 0, -stator_halfs_connector_width_mm_ / 2.0])
+                                    cylinder(stator_halfs_connector_width_mm_, d = stator_halfs_connector_diameter_mm_);
+                                translate([stator_diameter_mm_ / 2.0 + stator_halfs_connector_hole_diameter_mm_, 0, -stator_halfs_connector_width_mm_ / 2.0])
+                                    cylinder(stator_halfs_connector_width_mm_, d = stator_halfs_connector_hole_diameter_mm_);
+                            }
+                        }
+                    } // degrees
+                }
+                
+                // holes for shaft
+                rotate([0, 90, 0])
+                    cylinder(h = shaft_length_mm_ + rotor_diameter_mm_ / 2.0, d = shaft_diameter_mm_);
+                rotate([0, -90, 0])
+                    cylinder(h = shaft_length_mm_ + rotor_diameter_mm_ / 2.0, d = shaft_diameter_mm_);
+                
+                // remove inner sphere to build shell
+                sphere(d = stator_diameter_mm_ - 2 * stator_rotor_shell_width_mm_);
+                
+                // extrude lower spiral
+                sphere_spiral_extrude(
+                    shape_pts = points_circles,
+                    radius = d2r(stator_diameter_mm_),
+                    za_step = 10.0,
+                    z_circles = 4 * (stator_winding_wire_turns_ + add_turns),
+                    begin_angle = 360 * ((add_turns - shaft_gap_turns_)/ 2.0),
+                    end_angle = 360 * ((stator_winding_wire_turns_ + add_turns + shaft_gap_turns_) / 2.0),
+                    vt_dir = "SPI_UP",
+                    scale = 1.0
+                );
+                
+                // extrude upper spiral
+                sphere_spiral_extrude(
+                    shape_pts = points_circles,
+                    radius = d2r(stator_diameter_mm_),
+                    za_step = 10.0,
+                    z_circles = 4 * (stator_winding_wire_turns_ + add_turns),
+                    begin_angle = 360 * ((stator_winding_wire_turns_ + add_turns + shaft_gap_turns_) / 2.0),
+                    end_angle = 360 * ((add_turns - shaft_gap_turns_) / 2.0),
+                    vt_dir = "SPI_UP",
+                    scale = 1.0
+                );
+            } // difference
+            
+            if (shaft_use_stopper_) {
+                mirror([0, 1, 0])
+                    translate([-shaft_stopper_width_mm_ / 2.0, -stator_diameter_mm_ / 2.0 + stator_rotor_shell_width_mm_, -shaft_stopper_height_mm_ / 2.0])
+                        cube([shaft_stopper_width_mm_, stator_rotor_shell_width_mm_ + 2.0 * stator_rotor_distance_mm_ / 3.0, shaft_stopper_height_mm_]);
+                translate([-shaft_stopper_width_mm_ / 2.0, -stator_diameter_mm_ / 2.0 + stator_rotor_shell_width_mm_, -shaft_stopper_height_mm_ / 2.0])
+                    cube([shaft_stopper_width_mm_, stator_rotor_shell_width_mm_ + 2.0 * stator_rotor_distance_mm_ / 3.0, shaft_stopper_height_mm_]);
+            }
+            
+        } // union
         
         // cut upper hat
         if (render_object == "stator_lower")
-            translate([-stator_diameter_mm_ / 2.0, -stator_diameter_mm_ / 2.0, 0])
-                cube([stator_diameter_mm_, stator_diameter_mm_, stator_diameter_mm_ / 2.0]);
+            translate([-stator_diameter_mm_, -stator_diameter_mm_, 0])
+                cube([2.0 * stator_diameter_mm_, 2.0 * stator_diameter_mm_, stator_diameter_mm_ / 2.0]);
         else
             translate([-stator_diameter_mm_ / 2.0, -stator_diameter_mm_ / 2.0, (stator_diameter_mm_ - stator_cap_len_mm) / 2.0])
                 cube([stator_diameter_mm_, stator_diameter_mm_, stator_cap_len_mm]);
         
         // cut lower hat
         if (render_object == "stator_upper")
-            translate([-stator_diameter_mm_ / 2.0, -stator_diameter_mm_ / 2.0, -stator_diameter_mm_ / 2.0])
-                cube([stator_diameter_mm_, stator_diameter_mm_, stator_diameter_mm_ / 2.0]);
+            translate([-stator_diameter_mm_, -stator_diameter_mm_, -stator_diameter_mm_ / 2.0])
+                cube([2.0 * stator_diameter_mm_, 2.0 * stator_diameter_mm_, stator_diameter_mm_ / 2.0]);
         else
             translate([-stator_diameter_mm_ / 2.0, -stator_diameter_mm_ / 2.0, -(stator_diameter_mm_ - stator_cap_len_mm) / 2.0 - stator_cap_len_mm])
                 cube([stator_diameter_mm_, stator_diameter_mm_, stator_cap_len_mm]);
 
     } // difference
+}
+
+module render_knob() 
+{
+    knob_diameter = 1.5 * rotor_len_mm_;
+    union() {
+        difference() {
+            // create main cylinder knob
+            cylinder(knob_width_mm_, d = 1.5 * rotor_len_mm_);
+            // remove center shaft
+            cylinder(knob_width_mm_, d = shaft_diameter_mm_);
+            // remove plastic
+            for (deg = [0, 90, 180, 270])
+                rotate([0, 0, deg])
+                    translate([knob_diameter / 4.0, 0, 0])
+                        cylinder(knob_width_mm_, d = knob_diameter / 3.0);
+            // fingers
+            for (deg = [0:4:360])
+                rotate([0, 0, deg])
+                    translate([knob_diameter / 2.0, 0, 0])
+                        cylinder(knob_width_mm_, d = 2.0);
+        }
+        // create slot and move it to the right position
+        translate([-shaft_diameter_mm_ / 2.0, shaft_diameter_mm_ / 3.0, 0])
+            cube([shaft_diameter_mm_, shaft_diameter_mm_ / 2.0, knob_width_mm_]);
+    }
 }
