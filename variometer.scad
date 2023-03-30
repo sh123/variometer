@@ -35,10 +35,10 @@ stator_rotor_shell_width_mm_ = 1.0;
 stator_halfs_connector_width_mm_ = 2.0;
 
 // stator halfs connector diameter
-stator_halfs_connector_diameter_mm_ = 3.0;
+stator_halfs_connector_diameter_mm_ = 5.0;
 
 // stator halfs connector hole diameter
-stator_halfs_connector_hole_diameter_mm_ = 0.5;
+stator_halfs_connector_hole_diameter_mm_ = 1.5;
 
 // percentage of wiring over the sphere
 wiring_percentage_ = 50;
