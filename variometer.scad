@@ -50,7 +50,7 @@ assert((wiring_percentage_ <= 100.0) && (wiring_percentage_ >= 10.0), "Wiring pe
 material_permeability_ = 1.0;
 
 // diameter averaging when approximating by cylinder
-diameter_to_inductance_coeff_ = 0.6;
+diameter_to_inductance_coeff_ = 0.78;
 
 /* [Rotor Stator Connectivty Parameters] */
 
