@@ -42,7 +42,7 @@ stator_halfs_connector_hole_diameter_mm_ = 1.5;
 
 // percentage of wiring over the sphere
 wiring_percentage_ = 50;
-assert((wiring_percentage_ <= 100.0) && (wiring_percentage_ >= 10.0), "Wiring percentage should befrom 10 to 100");
+assert((wiring_percentage_ <= 100.0) && (wiring_percentage_ >= 10.0), "Wiring percentage should be from 10 to 100");
 
 /* [Extended Parameters] */
 
@@ -225,7 +225,7 @@ module render_rotor()
         // extrude lower spiral
         sphere_spiral_extrude(
             shape_pts = points_circles,
-            radius = d2r(rotor_diameter_mm_),
+            radius = d2r(rotor_diameter_mm_ - winding_wire_diameter_mm_ / 2.0),
             za_step = 10.0,
             z_circles = 4 * (rotor_winding_wire_turns_ + add_turns),
             begin_angle = 360 * ((add_turns - shaft_gap_turns_)/ 2.0),
@@ -237,7 +237,7 @@ module render_rotor()
         // extrude upper spiral
         sphere_spiral_extrude(
             shape_pts = points_circles,
-            radius = d2r(rotor_diameter_mm_),
+            radius = d2r(rotor_diameter_mm_ - winding_wire_diameter_mm_ / 2.0),
             za_step = 10.0,
             z_circles = 4 * (rotor_winding_wire_turns_ + add_turns),
             begin_angle = 360 * ((rotor_winding_wire_turns_ + add_turns + shaft_gap_turns_) / 2.0),
@@ -278,12 +278,14 @@ module render_stator(render_object)
                     // main sphere
                     sphere(d = stator_diameter_mm_);
                     // halfs screw tightenging
-                    for (deg = [45:45:360]) {
+                    for (deg = [45,90,135,225,270,315]) {
                         rotate([0, 0, deg]) {
                             difference() {
+                                // connector
                                 translate([stator_diameter_mm_ / 2.0, 0, -stator_halfs_connector_width_mm_ / 2.0])
                                     cylinder(stator_halfs_connector_width_mm_, d = stator_halfs_connector_diameter_mm_);
-                                translate([stator_diameter_mm_ / 2.0 + stator_halfs_connector_hole_diameter_mm_, 0, -stator_halfs_connector_width_mm_ / 2.0])
+                                // connector screw hole
+                                translate([stator_diameter_mm_ / 2.0 + stator_halfs_connector_hole_diameter_mm_ / 2, 0, -stator_halfs_connector_width_mm_ / 2.0])
                                     cylinder(stator_halfs_connector_width_mm_, d = stator_halfs_connector_hole_diameter_mm_);
                             }
                         }
@@ -302,7 +304,7 @@ module render_stator(render_object)
                 // extrude lower spiral
                 sphere_spiral_extrude(
                     shape_pts = points_circles,
-                    radius = d2r(stator_diameter_mm_),
+                    radius = d2r(stator_diameter_mm_ - winding_wire_diameter_mm_ / 2.0),
                     za_step = 10.0,
                     z_circles = 4 * (stator_winding_wire_turns_ + add_turns),
                     begin_angle = 360 * ((add_turns - shaft_gap_turns_)/ 2.0),
@@ -314,7 +316,7 @@ module render_stator(render_object)
                 // extrude upper spiral
                 sphere_spiral_extrude(
                     shape_pts = points_circles,
-                    radius = d2r(stator_diameter_mm_),
+                    radius = d2r(stator_diameter_mm_ - winding_wire_diameter_mm_ / 2.0),
                     za_step = 10.0,
                     z_circles = 4 * (stator_winding_wire_turns_ + add_turns),
                     begin_angle = 360 * ((stator_winding_wire_turns_ + add_turns + shaft_gap_turns_) / 2.0),
